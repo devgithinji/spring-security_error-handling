@@ -3,16 +3,14 @@ package org.densoft.authdemo.config;
 import org.densoft.authdemo.exception.CustomAccessDeniedHandler;
 import org.densoft.authdemo.exception.CustomAuthEntryPoint;
 import org.densoft.authdemo.filter.JwtFilter;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
 public class SecurityConfig {
@@ -31,10 +29,20 @@ public class SecurityConfig {
         this.customAuthEntryPoint = customAuthEntryPoint;
     }
 
+
+//    @Bean
+//    public AuthenticationManager authenticationManagerBean(HttpSecurity http) throws Exception {
+//        AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+//        authenticationManagerBuilder.authenticationProvider(customAuthProvider);
+//        return authenticationManagerBuilder.build();
+//    }
+
+
     @Bean
-    public AuthenticationManager authenticationManager() {
-        return new ProviderManager(customAuthProvider);
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -45,16 +53,12 @@ public class SecurityConfig {
                 .requestMatchers("/products/**").authenticated());
 
 
-// shorter way but requires HandlerExceptionResolver autowiring
-//        httpSecurity.exceptionHandling(configurer -> configurer
-//                .accessDeniedHandler((request, response, accessDeniedException) -> handlerExceptionResolver.resolveException(request, response, null, accessDeniedException))
-//                .authenticationEntryPoint((request, response, authException) -> handlerExceptionResolver.resolveException(request, response, null, authException))
-//        );
-
         httpSecurity.exceptionHandling(configurer -> configurer
                 .accessDeniedHandler(customAccessDeniedHandler)
                 .authenticationEntryPoint(customAuthEntryPoint)
         );
+
+        httpSecurity.authenticationProvider(customAuthProvider);
 
         httpSecurity.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return httpSecurity.build();
